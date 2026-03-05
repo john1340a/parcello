@@ -41,16 +41,8 @@ function initMap() {
     if (geojsonData) addParcelsToMap();
   });
 
-  map.on("click", LAYER_FILL, (e) => {
-    const props = e.features[0]?.properties ?? {};
-    showFeatureInfo(props);
-  });
-
-  map.on("mouseenter", LAYER_FILL, () => {
-    map.getCanvas().style.cursor = "pointer";
-  });
-  map.on("mouseleave", LAYER_FILL, () => {
-    map.getCanvas().style.cursor = "";
+  map.on("load", () => {
+    if (geojsonData) addParcelsToMap();
   });
 }
 
@@ -228,7 +220,8 @@ async function searchPlanetImages(geoJson) {
     const features = data.features || [];
 
     // Clear old options except OSM
-    selectEl.innerHTML = `<option value="__osm__">OpenStreetMap</option>`;
+    // Clear old options except the base style
+    selectEl.innerHTML = `<option value="__osm__">Jawg Street</option>`;
 
     if (features.length === 0) {
       hintEl.textContent =
@@ -329,6 +322,20 @@ function addParcelsToMap() {
 
   document.getElementById("layerControls").hidden = false;
   syncToggleStates();
+
+  // Re-attach interactions (listeners are lost when layers are removed/re-added during style changes)
+  map.on("click", LAYER_FILL, (e) => {
+    const props = e.features[0]?.properties ?? {};
+    showFeatureInfo(props);
+  });
+
+  map.on("mouseenter", LAYER_FILL, () => {
+    map.getCanvas().style.cursor = "pointer";
+  });
+
+  map.on("mouseleave", LAYER_FILL, () => {
+    map.getCanvas().style.cursor = "";
+  });
 }
 
 function removeParcelLayer() {
@@ -356,10 +363,20 @@ function removeParcelLayer() {
 }
 
 function zoomToLayer() {
-  const bounds = getGeoJSONBounds(geojsonData);
-  if (bounds) {
+  return new Promise((resolve) => {
+    const bounds = getGeoJSONBounds(geojsonData);
+    if (!bounds) {
+      resolve();
+      return;
+    }
+
+    // If map is already moving, wait or handle? Usually just fitBounds
+    map.once("moveend", () => resolve());
     map.fitBounds(bounds, { padding: 60, maxZoom: 18 });
-  }
+
+    // Fallback if 'moveend' doesn't fire for some reason
+    setTimeout(resolve, 3000);
+  });
 }
 
 /* ── Feature Info ────────────────────────────────── */
@@ -384,11 +401,11 @@ function showFeatureInfo(props) {
 }
 
 /* ── GeoJSON Loading ─────────────────────────────── */
-function loadGeojsonFile(file) {
+async function loadGeojsonFile(file) {
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     try {
       const data = JSON.parse(e.target.result);
       validateGeoJSON(data);
@@ -404,7 +421,8 @@ function loadGeojsonFile(file) {
 
       if (map.loaded()) {
         addParcelsToMap();
-        zoomToLayer();
+        // Wait for zoom to finish BEFORE searching Planet images
+        await zoomToLayer();
         searchPlanetImages(data);
       }
     } catch (err) {
@@ -490,6 +508,7 @@ function showNotification(message, type = "info") {
     display: flex;
     align-items: center;
     max-width: 90vw;
+    pointer-events: none;
   `;
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 4000);

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Parcello – Visualisation des parcelles</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header__inner">
+      <div class="header__brand">
+        <span class="header__logo" aria-hidden="true">🌿</span>
+        <span class="header__title">Parcello</span>
+      </div>
+      <nav class="header__nav" aria-label="Navigation principale">
+        <button class="btn btn--outline" id="btn-refresh" title="Rafraîchir les données">
+          <span class="btn__icon">↻</span>
+          <span class="btn__label">Actualiser</span>
+        </button>
+        <button class="btn btn--primary" id="btn-add" title="Ajouter une parcelle">
+          <span class="btn__icon">+</span>
+          <span class="btn__label">Ajouter</span>
+        </button>
+      </nav>
+      <button class="sidebar-toggle" id="sidebar-toggle" aria-expanded="false" aria-controls="sidebar" title="Afficher / masquer les parcelles">
+        ☰ Parcelles
+      </button>
+    </div>
+  </header>
+
+  <!-- Main layout -->
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar" aria-label="Liste des parcelles">
+      <div class="sidebar__header">
+        <h2 class="sidebar__title">Mes parcelles</h2>
+        <button class="sidebar__close" id="sidebar-close" aria-label="Fermer le panneau">✕</button>
+      </div>
+
+      <!-- Search -->
+      <div class="sidebar__search">
+        <input
+          type="search"
+          id="search"
+          class="input"
+          placeholder="Rechercher une parcelle…"
+          aria-label="Rechercher une parcelle"
+        />
+      </div>
+
+      <!-- Filter chips -->
+      <div class="filter-chips" role="group" aria-label="Filtrer par statut">
+        <button class="chip chip--active" data-filter="all">Toutes</button>
+        <button class="chip" data-filter="active">Actives</button>
+        <button class="chip" data-filter="fallow">En jachère</button>
+        <button class="chip" data-filter="harvest">Récolte</button>
+      </div>
+
+      <!-- Parcel list -->
+      <ul class="parcel-list" id="parcel-list" role="list" aria-live="polite"></ul>
+
+      <!-- Summary -->
+      <div class="sidebar__summary" id="summary" aria-live="polite"></div>
+    </aside>
+
+    <!-- Overlay for mobile sidebar -->
+    <div class="sidebar-overlay" id="sidebar-overlay" aria-hidden="true"></div>
+
+    <!-- Map area -->
+    <main class="map-container" id="map-container" aria-label="Carte des parcelles">
+      <canvas id="map-canvas" aria-label="Visualisation cartographique des parcelles"></canvas>
+      <div class="map-legend" aria-label="Légende">
+        <h3 class="map-legend__title">Légende</h3>
+        <ul class="map-legend__list">
+          <li><span class="legend-dot legend-dot--active"></span>Active</li>
+          <li><span class="legend-dot legend-dot--fallow"></span>Jachère</li>
+          <li><span class="legend-dot legend-dot--harvest"></span>Récolte</li>
+        </ul>
+      </div>
+      <div class="map-controls" aria-label="Contrôles de la carte">
+        <button class="map-btn" id="zoom-in" title="Zoom avant" aria-label="Zoom avant">+</button>
+        <button class="map-btn" id="zoom-out" title="Zoom arrière" aria-label="Zoom arrière">−</button>
+        <button class="map-btn" id="zoom-reset" title="Réinitialiser le zoom" aria-label="Réinitialiser">⊙</button>
+      </div>
+      <div class="map-status" id="map-status" aria-live="polite"></div>
+    </main>
+  </div>
+
+  <!-- Detail panel (slide-in on parcel click) -->
+  <div class="detail-panel" id="detail-panel" role="dialog" aria-modal="true" aria-label="Détails de la parcelle">
+    <div class="detail-panel__header">
+      <h2 class="detail-panel__title" id="detail-title">Parcelle</h2>
+      <button class="detail-panel__close" id="detail-close" aria-label="Fermer">✕</button>
+    </div>
+    <div class="detail-panel__body" id="detail-body"></div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div class="toast-container" id="toast-container" aria-live="assertive" aria-atomic="true"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

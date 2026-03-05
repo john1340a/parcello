@@ -48,23 +48,29 @@ npm run preview
    ```
    VITE_PLANET_API_KEY=votre_cle_api_ici
    ```
-3. Rechargez l'application.
 
-La clé peut aussi être saisie directement dans l'interface sans redémarrer le serveur.
+## 📚 Documentation
+
+La documentation technique détaillée est disponible dans le dossier [/docs](./docs/README.md) :
+
+- [Intégration Planet Labs](./docs/api-planet.md)
+- [Architecture & Structure](./docs/architecture.md)
+- [Installation & Setup](./docs/installation.md)
+- [Cartographie (MapLibre)](./docs/libs/maplibre.md)
 
 ## Utilisation
 
-1. *(Optionnel)* Entrez votre clé API Planet dans le champ prévu et cliquez sur **✓**.
-2. Choisissez la mosaïque satellite souhaitée dans le menu déroulant.
-3. Glissez votre fichier GeoJSON dans la zone prévue (ou cliquez pour le parcourir).
+1. Glissez votre fichier GeoJSON dans la zone prévue (ou cliquez pour le parcourir).
+2. L'application calculera automatiquement l'emprise et recherchera les images Planet disponibles.
+3. Choisissez l'image satellite souhaitée dans le menu déroulant (actualisé dynamiquement).
 4. La carte zoome automatiquement sur vos parcelles.
 5. Cliquez sur une parcelle pour voir ses propriétés.
 
 ## Stack technique
 
-| Outil | Rôle |
-|---|---|
-| [Vite](https://vitejs.dev/) | Bundler / dev server |
-| [MapLibre GL JS](https://maplibre.org/) | Moteur cartographique |
-| [PlanetScope](https://www.planet.com/) | Imagerie satellite haute résolution |
-| GeoJSON | Format de données des parcelles |
+| Outil                                   | Rôle                                |
+| --------------------------------------- | ----------------------------------- |
+| [Vite](https://vitejs.dev/)             | Bundler / dev server                |
+| [MapLibre GL JS](https://maplibre.org/) | Moteur cartographique               |
+| [PlanetScope](https://www.planet.com/)  | Imagerie satellite haute résolution |
+| GeoJSON                                 | Format de données des parcelles     |

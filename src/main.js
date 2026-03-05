@@ -1,85 +1,77 @@
-import maplibregl from 'maplibre-gl';
+import maplibregl from "maplibre-gl";
 
-/* ── Constants ──────────────────────────────────── */
 const PLANET_TILE_URL_TEMPLATE =
-  'https://tiles.planet.com/basemaps/v1/planet-tiles/{quad}/gmap/{z}/{x}/{y}?api_key={apiKey}';
+  "https://tiles0.planet.com/data/v1/PSScene/{item_id}/{z}/{x}/{y}.png?api_key={apiKey}";
 
-const OSM_STYLE = {
-  version: 8,
-  sources: {
-    osm: {
-      type: 'raster',
-      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-      tileSize: 256,
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxzoom: 19,
-    },
-  },
-  layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
-};
+const JAWG_STYLE_URL = `https://api.jawg.io/styles/jawg-streets.json?access-token=${import.meta.env.VITE_JAWG_API_KEY}`;
 
-const SOURCE_ID = 'parcelles';
-const LAYER_FILL = 'parcelles-fill';
-const LAYER_OUTLINE = 'parcelles-outline';
-const LAYER_LABEL = 'parcelles-label';
+const SOURCE_ID = "parcelles";
+const LAYER_FILL = "parcelles-fill";
+const LAYER_OUTLINE = "parcelles-outline";
+const LAYER_LABEL = "parcelles-label";
 
 /* ── State ───────────────────────────────────────── */
 let map;
-let currentApiKey = '';
 let geojsonData = null;
 
 /* ── Map Initialisation ──────────────────────────── */
 function initMap() {
   map = new maplibregl.Map({
-    container: 'map',
-    style: OSM_STYLE,
+    container: "map",
+    style: JAWG_STYLE_URL,
     center: [2.3, 46.7], // France
     zoom: 5,
   });
 
-  map.addControl(new maplibregl.NavigationControl(), 'top-right');
-  map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: 'metric' }), 'bottom-right');
+  map.addControl(new maplibregl.NavigationControl(), "top-right");
+  map.addControl(
+    new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }),
+    "bottom-right",
+  );
   map.addControl(
     new maplibregl.GeolocateControl({
       positionOptions: { enableHighAccuracy: true },
       trackUserLocation: true,
     }),
-    'top-right',
+    "top-right",
   );
-  map.addControl(new maplibregl.FullscreenControl(), 'top-right');
+  map.addControl(new maplibregl.FullscreenControl(), "top-right");
 
-  map.on('load', () => {
+  map.on("load", () => {
     if (geojsonData) addParcelsToMap();
   });
 
-  map.on('click', LAYER_FILL, (e) => {
+  map.on("click", LAYER_FILL, (e) => {
     const props = e.features[0]?.properties ?? {};
     showFeatureInfo(props);
   });
 
-  map.on('mouseenter', LAYER_FILL, () => {
-    map.getCanvas().style.cursor = 'pointer';
+  map.on("mouseenter", LAYER_FILL, () => {
+    map.getCanvas().style.cursor = "pointer";
   });
-  map.on('mouseleave', LAYER_FILL, () => {
-    map.getCanvas().style.cursor = '';
+  map.on("mouseleave", LAYER_FILL, () => {
+    map.getCanvas().style.cursor = "";
   });
 }
 
-/* ── Planet Basemap ──────────────────────────────── */
-function buildPlanetStyle(quad, apiKey) {
-  const tilesUrl = PLANET_TILE_URL_TEMPLATE.replace('{quad}', quad).replace('{apiKey}', apiKey);
+/* ── Planet Basemap & API ────────────────────────── */
+function buildPlanetStyle(itemId, apiKey) {
+  const tilesUrl = PLANET_TILE_URL_TEMPLATE.replace(
+    "{item_id}",
+    itemId,
+  ).replace("{apiKey}", apiKey);
   return {
     version: 8,
     sources: {
       planet: {
-        type: 'raster',
+        type: "raster",
         tiles: [tilesUrl],
         tileSize: 256,
-        attribution: '© Planet Labs PBC',
+        attribution: "© Planet Labs PBC",
         maxzoom: 18,
       },
     },
-    layers: [{ id: 'planet', type: 'raster', source: 'planet' }],
+    layers: [{ id: "planet", type: "raster", source: "planet" }],
   };
 }
 
@@ -97,32 +89,185 @@ function applyBasemap(style) {
 
   map.setStyle(style);
 
-  map.once('styledata', () => {
+  map.once("styledata", () => {
     map.jumpTo({ center, zoom, bearing, pitch });
     if (hadParcels) addParcelsToMap();
   });
 }
 
 function updateBasemap() {
-  const quad = document.getElementById('planetQuad').value;
-  const apiKey = currentApiKey;
+  const itemId = document.getElementById("planetImageSelect").value;
+  const apiKey = import.meta.env.VITE_PLANET_API_KEY;
 
-  if (quad === '__osm__') {
-    document.getElementById('planetAttrib').hidden = true;
-    applyBasemap(OSM_STYLE);
+  if (itemId === "__osm__") {
+    applyBasemap(JAWG_STYLE_URL);
     return;
   }
 
   if (!apiKey) {
-    showNotification('⚠️ Veuillez saisir votre clé API Planet pour utiliser le fond satellite.', 'warn');
-    document.getElementById('planetQuad').value = '__osm__';
-    document.getElementById('planetAttrib').hidden = true;
-    applyBasemap(OSM_STYLE);
+    showNotification(
+      "Clé API Planet introuvable. Affichage de Jawg Maps.",
+      "warn",
+    );
+    document.getElementById("planetImageSelect").value = "__osm__";
+    applyBasemap(JAWG_STYLE_URL);
     return;
   }
 
-  document.getElementById('planetAttrib').hidden = false;
-  applyBasemap(buildPlanetStyle(quad, apiKey));
+  applyBasemap(buildPlanetStyle(itemId, apiKey));
+}
+
+/* ── Utilities ───────────────────────────────────── */
+function getGeoJSONBounds(geoJson) {
+  const coords = [];
+  const collect = (geom) => {
+    if (!geom) return;
+    if (geom.type === "Point") {
+      coords.push(geom.coordinates);
+    } else if (geom.type === "MultiPoint" || geom.type === "LineString") {
+      coords.push(...geom.coordinates);
+    } else if (geom.type === "MultiLineString" || geom.type === "Polygon") {
+      geom.coordinates.forEach((ring) => coords.push(...ring));
+    } else if (geom.type === "MultiPolygon") {
+      geom.coordinates.forEach((poly) =>
+        poly.forEach((ring) => ring.forEach((c) => coords.push(c))),
+      );
+    } else if (geom.type === "GeometryCollection") {
+      geom.geometries.forEach(collect);
+    }
+  };
+
+  const features =
+    geoJson.type === "FeatureCollection" ? geoJson.features : [geoJson];
+  features.forEach((f) => collect(f.geometry ?? f));
+
+  if (coords.length === 0) return null;
+
+  const lons = coords.map((c) => c[0]);
+  const lats = coords.map((c) => c[1]);
+  return [
+    [Math.min(...lons), Math.min(...lats)],
+    [Math.max(...lons), Math.max(...lats)],
+  ];
+}
+
+async function searchPlanetImages(geoJson) {
+  const apiKey = import.meta.env.VITE_PLANET_API_KEY;
+  if (!apiKey) return;
+
+  const bounds = getGeoJSONBounds(geoJson);
+  if (!bounds) return;
+
+  // For Planet API (Polygon coordinates): [[minLon, minLat], [maxLon, minLat], ...]
+  const planetBoundsCoords = [
+    [bounds[0][0], bounds[0][1]],
+    [bounds[1][0], bounds[0][1]],
+    [bounds[1][0], bounds[1][1]],
+    [bounds[0][0], bounds[1][1]],
+    [bounds[0][0], bounds[0][1]],
+  ];
+
+  const hintEl = document.getElementById("planetSearchHint");
+  const selectEl = document.getElementById("planetImageSelect");
+
+  hintEl.textContent = "Recherche d'images satellites en cours...";
+  hintEl.style.color = "#4f7cff";
+
+  // Format dates: past 3 months
+  const now = new Date();
+  const past3Months = new Date();
+  past3Months.setMonth(now.getMonth() - 3);
+
+  const payload = {
+    item_types: ["PSScene"],
+    filter: {
+      type: "AndFilter",
+      config: [
+        {
+          type: "GeometryFilter",
+          field_name: "geometry",
+          config: {
+            type: "Polygon",
+            coordinates: [planetBoundsCoords],
+          },
+        },
+        {
+          type: "DateRangeFilter",
+          field_name: "acquired",
+          config: {
+            gte: past3Months.toISOString(),
+            lte: now.toISOString(),
+          },
+        },
+        {
+          type: "RangeFilter",
+          field_name: "cloud_cover",
+          config: { lte: 0.2 }, // <= 20% clouds
+        },
+      ],
+    },
+  };
+
+  try {
+    const response = await fetch(
+      "https://api.planet.com/data/v1/quick-search",
+      {
+        method: "POST",
+        headers: {
+          Authorization: "Basic " + btoa(apiKey + ":"),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      },
+    );
+
+    if (!response.ok)
+      throw new Error("Erreur de l'API Planet : " + response.statusText);
+
+    const data = await response.json();
+    const features = data.features || [];
+
+    // Clear old options except OSM
+    selectEl.innerHTML = `<option value="__osm__">OpenStreetMap</option>`;
+
+    if (features.length === 0) {
+      hintEl.textContent =
+        "Aucune image récente peu nuageuse trouvée sur cette zone.";
+      hintEl.style.color = "#d97706";
+      updateBasemap(); // Revert to OSM
+      return;
+    }
+
+    // Add found items
+    features.forEach((f) => {
+      const date = new Date(f.properties.acquired).toLocaleDateString("fr-FR", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const clouds = Math.round((f.properties.cloud_cover || 0) * 100);
+      const option = document.createElement("option");
+      option.value = f.id;
+      option.textContent = `${date} (${clouds}% nuages)`;
+      selectEl.appendChild(option);
+    });
+
+    hintEl.textContent = `${features.length} image(s) trouvée(s).`;
+    hintEl.style.color = "#10b981";
+    selectEl.disabled = false;
+
+    // Select first (most recent usually)
+    selectEl.value = features[0].id;
+    updateBasemap();
+    showNotification("Image satellite appliquée avec succès.");
+  } catch (err) {
+    console.error(err);
+    hintEl.textContent = "Erreur lors de la recherche Planet.";
+    hintEl.style.color = "#e05252";
+    updateBasemap();
+  }
 }
 
 /* ── Parcel Layer ────────────────────────────────── */
@@ -135,47 +280,54 @@ function addParcelsToMap() {
   });
   if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
 
-  map.addSource(SOURCE_ID, { type: 'geojson', data: geojsonData });
+  map.addSource(SOURCE_ID, { type: "geojson", data: geojsonData });
 
   map.addLayer({
     id: LAYER_FILL,
-    type: 'fill',
+    type: "fill",
     source: SOURCE_ID,
     paint: {
-      'fill-color': '#4f7cff',
-      'fill-opacity': 0.3,
+      "fill-color": "#4f7cff",
+      "fill-opacity": 0.3,
     },
   });
 
   map.addLayer({
     id: LAYER_OUTLINE,
-    type: 'line',
+    type: "line",
     source: SOURCE_ID,
     paint: {
-      'line-color': '#a0b4ff',
-      'line-width': 2,
+      "line-color": "#a0b4ff",
+      "line-width": 2,
     },
   });
 
   map.addLayer({
     id: LAYER_LABEL,
-    type: 'symbol',
+    type: "symbol",
     source: SOURCE_ID,
     layout: {
-      'text-field': ['coalesce', ['get', 'nom'], ['get', 'name'], ['get', 'label'], ['get', 'id'], ''],
-      'text-size': 12,
-      'text-font': ['Open Sans Regular'],
-      'text-anchor': 'center',
-      'text-max-width': 8,
+      "text-field": [
+        "coalesce",
+        ["get", "nom"],
+        ["get", "name"],
+        ["get", "label"],
+        ["get", "id"],
+        "",
+      ],
+      "text-size": 12,
+      "text-font": ["Open Sans Regular"],
+      "text-anchor": "center",
+      "text-max-width": 8,
     },
     paint: {
-      'text-color': '#ffffff',
-      'text-halo-color': '#000000',
-      'text-halo-width': 1.5,
+      "text-color": "#ffffff",
+      "text-halo-color": "#000000",
+      "text-halo-width": 1.5,
     },
   });
 
-  document.getElementById('layerControls').hidden = false;
+  document.getElementById("layerControls").hidden = false;
   syncToggleStates();
 }
 
@@ -186,63 +338,45 @@ function removeParcelLayer() {
   if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
 
   geojsonData = null;
-  document.getElementById('layerControls').hidden = true;
-  document.getElementById('featureInfo').hidden = true;
-  document.getElementById('fileInfo').textContent = '';
-  document.getElementById('dropLabel').innerHTML =
-    '📂 Glissez un fichier GeoJSON<br />ou cliquez pour parcourir';
+  const selectEl = document.getElementById("planetImageSelect");
+  selectEl.innerHTML = `<option value="__osm__">Jawg Street (par défaut)</option>`;
+  selectEl.value = "__osm__";
+  selectEl.disabled = true;
+  document.getElementById("planetSearchHint").textContent =
+    "Glissez un GeoJSON pour rechercher des images satellites récentes.";
+  document.getElementById("planetSearchHint").style.color = "";
+
+  updateBasemap();
+
+  document.getElementById("layerControls").hidden = true;
+  document.getElementById("featureInfo").hidden = true;
+  document.getElementById("fileInfo").textContent = "";
+  document.getElementById("dropLabel").innerHTML =
+    '<span class="material-symbols-outlined" style="font-size: 2rem; display: block; margin-bottom: 0.5rem">upload_file</span>Glissez un fichier GeoJSON<br />ou cliquez pour parcourir';
 }
 
 function zoomToLayer() {
-  if (!geojsonData) return;
-
-  const coords = [];
-  const collect = (geom) => {
-    if (!geom) return;
-    if (geom.type === 'Point') {
-      coords.push(geom.coordinates);
-    } else if (geom.type === 'MultiPoint' || geom.type === 'LineString') {
-      coords.push(...geom.coordinates);
-    } else if (geom.type === 'MultiLineString' || geom.type === 'Polygon') {
-      geom.coordinates.forEach((ring) => coords.push(...ring));
-    } else if (geom.type === 'MultiPolygon') {
-      geom.coordinates.forEach((poly) => poly.forEach((ring) => coords.push(...ring)));
-    } else if (geom.type === 'GeometryCollection') {
-      geom.geometries.forEach(collect);
-    }
-  };
-
-  const features =
-    geojsonData.type === 'FeatureCollection'
-      ? geojsonData.features
-      : [geojsonData];
-
-  features.forEach((f) => collect(f.geometry ?? f));
-
-  if (!coords.length) return;
-
-  const lons = coords.map((c) => c[0]);
-  const lats = coords.map((c) => c[1]);
-  const bounds = [
-    [Math.min(...lons), Math.min(...lats)],
-    [Math.max(...lons), Math.max(...lats)],
-  ];
-
-  map.fitBounds(bounds, { padding: 60, maxZoom: 18 });
+  const bounds = getGeoJSONBounds(geojsonData);
+  if (bounds) {
+    map.fitBounds(bounds, { padding: 60, maxZoom: 18 });
+  }
 }
 
 /* ── Feature Info ────────────────────────────────── */
 function showFeatureInfo(props) {
-  const section = document.getElementById('featureInfo');
-  const container = document.getElementById('featureProps');
+  const section = document.getElementById("featureInfo");
+  const container = document.getElementById("featureProps");
 
   const entries = Object.entries(props);
   if (!entries.length) {
-    container.textContent = 'Aucune propriété.';
+    container.textContent = "Aucune propriété.";
   } else {
     const rows = entries
-      .map(([k, v]) => `<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(String(v))}</td></tr>`)
-      .join('');
+      .map(
+        ([k, v]) =>
+          `<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(String(v))}</td></tr>`,
+      )
+      .join("");
     container.innerHTML = `<table>${rows}</table>`;
   }
 
@@ -261,20 +395,20 @@ function loadGeojsonFile(file) {
       geojsonData = data;
 
       const count =
-        data.type === 'FeatureCollection'
-          ? data.features.length
-          : 1;
+        data.type === "FeatureCollection" ? data.features.length : 1;
 
-      document.getElementById('fileInfo').textContent =
-        `✅ ${file.name} — ${count} entité(s) chargée(s)`;
-      document.getElementById('dropLabel').textContent = `📌 ${file.name}`;
+      document.getElementById("fileInfo").innerHTML =
+        `<span class="material-symbols-outlined" style="font-size: 1rem; vertical-align: middle">check_circle</span> ${file.name} — ${count} entité(s) chargée(s)`;
+      document.getElementById("dropLabel").innerHTML =
+        `<span class="material-symbols-outlined" style="vertical-align: middle">push_pin</span> ${file.name}`;
 
       if (map.loaded()) {
         addParcelsToMap();
         zoomToLayer();
+        searchPlanetImages(data);
       }
     } catch (err) {
-      showNotification(`❌ Fichier invalide : ${err.message}`, 'error');
+      showNotification(`Fichier invalide : ${err.message}`, "error");
     }
   };
   reader.readAsText(file);
@@ -282,15 +416,15 @@ function loadGeojsonFile(file) {
 
 function validateGeoJSON(data) {
   const allowed = [
-    'FeatureCollection',
-    'Feature',
-    'Point',
-    'MultiPoint',
-    'LineString',
-    'MultiLineString',
-    'Polygon',
-    'MultiPolygon',
-    'GeometryCollection',
+    "FeatureCollection",
+    "Feature",
+    "Point",
+    "MultiPoint",
+    "LineString",
+    "MultiLineString",
+    "Polygon",
+    "MultiPolygon",
+    "GeometryCollection",
   ];
   if (!data || !allowed.includes(data.type)) {
     throw new Error(`Type GeoJSON non reconnu : "${data?.type}"`);
@@ -299,46 +433,63 @@ function validateGeoJSON(data) {
 
 /* ── Layer Toggle Helpers ────────────────────────── */
 function syncToggleStates() {
-  setLayerVisibility(LAYER_FILL, document.getElementById('toggleFill').checked);
-  setLayerVisibility(LAYER_OUTLINE, document.getElementById('toggleOutline').checked);
-  setLayerVisibility(LAYER_LABEL, document.getElementById('toggleLabels').checked);
-  setFillOpacity(document.getElementById('fillOpacity').value);
+  setLayerVisibility(LAYER_FILL, document.getElementById("toggleFill").checked);
+  setLayerVisibility(
+    LAYER_OUTLINE,
+    document.getElementById("toggleOutline").checked,
+  );
+  setLayerVisibility(
+    LAYER_LABEL,
+    document.getElementById("toggleLabels").checked,
+  );
+  setFillOpacity(document.getElementById("fillOpacity").value);
 }
 
 function setLayerVisibility(layerId, visible) {
   if (map.getLayer(layerId)) {
-    map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
+    map.setLayoutProperty(layerId, "visibility", visible ? "visible" : "none");
   }
 }
 
 function setFillOpacity(value) {
   if (map.getLayer(LAYER_FILL)) {
-    map.setPaintProperty(LAYER_FILL, 'fill-opacity', Number(value) / 100);
+    map.setPaintProperty(LAYER_FILL, "fill-opacity", Number(value) / 100);
   }
 }
 
 /* ── Notification ────────────────────────────────── */
-function showNotification(message, type = 'info') {
-  const existing = document.getElementById('notification');
+function showNotification(message, type = "info") {
+  const existing = document.getElementById("notification");
   if (existing) existing.remove();
 
-  const el = document.createElement('div');
-  el.id = 'notification';
-  el.textContent = message;
+  const icons = {
+    info: "info",
+    warn: "warning",
+    error: "error",
+  };
+
+  const el = document.createElement("div");
+  el.id = "notification";
+  el.innerHTML = `
+    <span class="material-symbols-outlined" style="font-size: 1.2rem; vertical-align: middle; margin-right: 0.5rem">${icons[type] || "info"}</span>
+    <span style="vertical-align: middle">${message}</span>
+  `;
   el.style.cssText = `
     position: fixed;
-    top: 12px;
+    top: 1.5rem;
     left: 50%;
     transform: translateX(-50%);
-    background: ${type === 'error' ? '#e05252' : type === 'warn' ? '#d97706' : '#4f7cff'};
+    background: ${type === "error" ? "#e05252" : type === "warn" ? "#d97706" : "#4f7cff"};
     color: #fff;
-    padding: 0.6rem 1.2rem;
-    border-radius: 8px;
-    font-size: 0.85rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
     z-index: 9999;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-    max-width: 420px;
-    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    max-width: 90vw;
   `;
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 4000);
@@ -347,75 +498,85 @@ function showNotification(message, type = 'info') {
 /* ── Utilities ───────────────────────────────────── */
 function escapeHtml(str) {
   return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 /* ── Event Wiring ────────────────────────────────── */
 function wireEvents() {
-  /* API key */
-  document.getElementById('applyApiKey').addEventListener('click', () => {
-    currentApiKey = document.getElementById('apiKey').value.trim();
-    if (!currentApiKey) {
-      showNotification('⚠️ Veuillez entrer une clé API valide.', 'warn');
-      return;
-    }
-    updateBasemap();
-    showNotification('✅ Clé API appliquée. Chargement du fond satellite…');
-  });
-
-  document.getElementById('apiKey').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') document.getElementById('applyApiKey').click();
-  });
-
   /* Basemap selector */
-  document.getElementById('planetQuad').addEventListener('change', updateBasemap);
+  document
+    .getElementById("planetImageSelect")
+    .addEventListener("change", updateBasemap);
 
   /* File drop zone */
-  const dropZone = document.getElementById('dropZone');
-  const fileInput = document.getElementById('geojsonFile');
+  const dropZone = document.getElementById("dropZone");
+  const fileInput = document.getElementById("geojsonFile");
 
-  dropZone.addEventListener('click', () => fileInput.click());
-  dropZone.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') fileInput.click();
+  dropZone.addEventListener("click", () => fileInput.click());
+  dropZone.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") fileInput.click();
   });
 
-  dropZone.addEventListener('dragover', (e) => {
+  dropZone.addEventListener("dragover", (e) => {
     e.preventDefault();
-    dropZone.classList.add('drag-over');
+    dropZone.classList.add("drag-over");
   });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-  dropZone.addEventListener('drop', (e) => {
+  dropZone.addEventListener("dragleave", () =>
+    dropZone.classList.remove("drag-over"),
+  );
+  dropZone.addEventListener("drop", (e) => {
     e.preventDefault();
-    dropZone.classList.remove('drag-over');
+    dropZone.classList.remove("drag-over");
     const file = e.dataTransfer.files[0];
     if (file) loadGeojsonFile(file);
   });
 
-  fileInput.addEventListener('change', () => {
+  fileInput.addEventListener("change", () => {
     loadGeojsonFile(fileInput.files[0]);
-    fileInput.value = '';
+    fileInput.value = "";
   });
 
   /* Layer controls */
-  document.getElementById('toggleFill').addEventListener('change', (e) =>
-    setLayerVisibility(LAYER_FILL, e.target.checked),
-  );
-  document.getElementById('toggleOutline').addEventListener('change', (e) =>
-    setLayerVisibility(LAYER_OUTLINE, e.target.checked),
-  );
-  document.getElementById('toggleLabels').addEventListener('change', (e) =>
-    setLayerVisibility(LAYER_LABEL, e.target.checked),
-  );
-  document.getElementById('fillOpacity').addEventListener('input', (e) =>
-    setFillOpacity(e.target.value),
-  );
+  document
+    .getElementById("toggleFill")
+    .addEventListener("change", (e) =>
+      setLayerVisibility(LAYER_FILL, e.target.checked),
+    );
+  document
+    .getElementById("toggleOutline")
+    .addEventListener("change", (e) =>
+      setLayerVisibility(LAYER_OUTLINE, e.target.checked),
+    );
+  document
+    .getElementById("toggleLabels")
+    .addEventListener("change", (e) =>
+      setLayerVisibility(LAYER_LABEL, e.target.checked),
+    );
+  document
+    .getElementById("fillOpacity")
+    .addEventListener("input", (e) => setFillOpacity(e.target.value));
 
-  document.getElementById('clearLayer').addEventListener('click', removeParcelLayer);
-  document.getElementById('zoomToLayer').addEventListener('click', zoomToLayer);
+  document
+    .getElementById("clearLayer")
+    .addEventListener("click", removeParcelLayer);
+  document.getElementById("zoomToLayer").addEventListener("click", zoomToLayer);
+
+  /* Responsive Sidebar Toggle */
+  const menuToggle = document.getElementById("menuToggle");
+  const sidebarOverlay = document.getElementById("sidebarOverlay");
+
+  const toggleSidebar = () => {
+    document.body.classList.toggle("sidebar-open");
+    // Force map resize after transition
+    setTimeout(() => map.resize(), 350);
+  };
+
+  menuToggle.addEventListener("click", toggleSidebar);
+  sidebarOverlay.addEventListener("click", toggleSidebar);
 }
 
 /* ── Bootstrap ───────────────────────────────────── */

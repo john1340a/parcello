@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Parcello – Visualisation de parcelles</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link
+      href="https://unpkg.com/maplibre-gl@5.19.0/dist/maplibre-gl.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <!-- ── Sidebar ─────────────────────────────────── -->
+    <aside id="sidebar">
+      <header class="sidebar-header">
+        <img src="/favicon.svg" alt="Parcello logo" class="logo" />
+        <h1>Parcello</h1>
+      </header>
+
+      <!-- API Key -->
+      <section class="panel-section">
+        <label for="apiKey" class="panel-label">Clé API Planet</label>
+        <div class="input-row">
+          <input
+            type="password"
+            id="apiKey"
+            placeholder="Votre clé API PlanetScope"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button id="applyApiKey" class="btn btn-primary" title="Appliquer">✓</button>
+        </div>
+        <p class="hint">
+          Obtenez votre clé sur
+          <a href="https://www.planet.com/account/" target="_blank" rel="noopener">planet.com</a>.
+        </p>
+      </section>
+
+      <!-- Fond de carte -->
+      <section class="panel-section">
+        <label class="panel-label">Fond de carte</label>
+        <select id="planetQuad" class="select-full">
+          <option value="planet_medres_visual_2024-10_mosaic">🛰 PlanetScope – Oct 2024</option>
+          <option value="planet_medres_visual_2024-07_mosaic">🛰 PlanetScope – Juil 2024</option>
+          <option value="planet_medres_visual_2024-04_mosaic">🛰 PlanetScope – Avr 2024</option>
+          <option value="planet_medres_visual_2024-01_mosaic">🛰 PlanetScope – Jan 2024</option>
+          <option value="planet_medres_visual_2023-10_mosaic">🛰 PlanetScope – Oct 2023</option>
+          <option value="planet_medres_visual_2023-07_mosaic">🛰 PlanetScope – Juil 2023</option>
+          <option value="__osm__">🗺 OpenStreetMap (sans clé API)</option>
+        </select>
+      </section>
+
+      <!-- GeoJSON upload -->
+      <section class="panel-section">
+        <label class="panel-label">Parcelles (GeoJSON)</label>
+        <div
+          id="dropZone"
+          class="drop-zone"
+          role="button"
+          tabindex="0"
+          aria-label="Zone de dépôt de fichier GeoJSON"
+        >
+          <span id="dropLabel">📂 Glissez un fichier GeoJSON<br />ou cliquez pour parcourir</span>
+          <input type="file" id="geojsonFile" accept=".geojson,.json" hidden />
+        </div>
+        <p id="fileInfo" class="file-info"></p>
+      </section>
+
+      <!-- Layer controls -->
+      <section class="panel-section" id="layerControls" hidden>
+        <label class="panel-label">Couche de parcelles</label>
+        <div class="toggle-row">
+          <label class="toggle-label" for="toggleFill">Remplissage</label>
+          <label class="switch">
+            <input type="checkbox" id="toggleFill" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <label class="toggle-label" for="toggleOutline">Contour</label>
+          <label class="switch">
+            <input type="checkbox" id="toggleOutline" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <label class="toggle-label" for="toggleLabels">Étiquettes</label>
+          <label class="switch">
+            <input type="checkbox" id="toggleLabels" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <label class="panel-label" style="margin-top:0.75rem">Opacité du remplissage</label>
+        <input type="range" id="fillOpacity" min="0" max="100" value="30" class="range-full" />
+
+        <button id="clearLayer" class="btn btn-danger" style="margin-top:0.75rem">
+          🗑 Supprimer la couche
+        </button>
+        <button id="zoomToLayer" class="btn btn-secondary">
+          🔍 Centrer sur la couche
+        </button>
+      </section>
+
+      <!-- Feature info -->
+      <section class="panel-section" id="featureInfo" hidden>
+        <label class="panel-label">Propriétés de la parcelle</label>
+        <div id="featureProps"></div>
+      </section>
+    </aside>
+
+    <!-- ── Map ─────────────────────────────────────── -->
+    <div id="map"></div>
+
+    <!-- ── Attribution overlay ────────────────────── -->
+    <div id="planetAttrib" hidden>
+      Imagerie © <a href="https://www.planet.com" target="_blank" rel="noopener">Planet Labs PBC</a>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

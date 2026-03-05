@@ -1,0 +1,374 @@
+/* ── Reset & Variables ──────────────────────────── */
+:root {
+  --sidebar-w: 320px;
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface-2: #222536;
+  --border: #2e3150;
+  --accent: #4f7cff;
+  --accent-hover: #3a65e8;
+  --danger: #e05252;
+  --danger-hover: #c43b3b;
+  --secondary: #35394f;
+  --secondary-hover: #454a66;
+  --text: #e8eaf6;
+  --text-muted: #8890b5;
+  --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --radius: 8px;
+  --transition: 0.2s ease;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ── Layout ─────────────────────────────────────── */
+body {
+  display: flex;
+}
+
+#sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  height: 100vh;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  z-index: 10;
+}
+
+#map {
+  flex: 1;
+  height: 100vh;
+}
+
+/* ── Sidebar Header ──────────────────────────────── */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.2rem 1rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.logo {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.sidebar-header h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Panel Sections ──────────────────────────────── */
+.panel-section {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.panel-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.hint a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.hint a:hover {
+  text-decoration: underline;
+}
+
+/* ── Input Row ───────────────────────────────────── */
+.input-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+input[type='password'],
+input[type='text'] {
+  flex: 1;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.45rem 0.65rem;
+  color: var(--text);
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+input[type='password']:focus,
+input[type='text']:focus {
+  border-color: var(--accent);
+}
+
+/* ── Select ──────────────────────────────────────── */
+.select-full {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.45rem 0.65rem;
+  color: var(--text);
+  font-size: 0.85rem;
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--transition);
+}
+
+.select-full:focus {
+  border-color: var(--accent);
+}
+
+/* ── Buttons ─────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.45rem 0.75rem;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), transform 0.1s;
+  white-space: nowrap;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+  width: 100%;
+}
+.btn-danger:hover {
+  background: var(--danger-hover);
+}
+
+.btn-secondary {
+  background: var(--secondary);
+  color: var(--text);
+  width: 100%;
+}
+.btn-secondary:hover {
+  background: var(--secondary-hover);
+}
+
+/* ── Drop Zone ───────────────────────────────────── */
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 1.2rem 0.75rem;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+  line-height: 1.6;
+}
+
+.drop-zone:hover,
+.drop-zone.drag-over {
+  border-color: var(--accent);
+  background: rgba(79, 124, 255, 0.08);
+  color: var(--text);
+}
+
+/* ── File Info ───────────────────────────────────── */
+.file-info {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  min-height: 1rem;
+}
+
+/* ── Toggle Switch ───────────────────────────────── */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.toggle-label {
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 22px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  inset: 0;
+  background: var(--surface-2);
+  border-radius: 22px;
+  transition: background var(--transition);
+  cursor: pointer;
+}
+
+.slider::before {
+  content: '';
+  position: absolute;
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  transition: transform var(--transition), background var(--transition);
+}
+
+.switch input:checked + .slider {
+  background: var(--accent);
+}
+
+.switch input:checked + .slider::before {
+  transform: translateX(16px);
+  background: #fff;
+}
+
+/* ── Range ───────────────────────────────────────── */
+.range-full {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ── Feature Properties ──────────────────────────── */
+#featureProps {
+  font-size: 0.8rem;
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.75rem;
+  max-height: 220px;
+  overflow-y: auto;
+  line-height: 1.8;
+}
+
+#featureProps table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#featureProps td {
+  padding: 0.1rem 0.25rem;
+  vertical-align: top;
+  word-break: break-word;
+}
+
+#featureProps td:first-child {
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+  padding-right: 0.6rem;
+  width: 40%;
+}
+
+/* ── Planet Attribution ──────────────────────────── */
+#planetAttrib {
+  position: fixed;
+  bottom: 28px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #ccc;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+#planetAttrib a {
+  color: #aac4ff;
+  pointer-events: all;
+}
+
+/* ── MapLibre overrides ──────────────────────────── */
+.maplibregl-ctrl-attrib {
+  font-size: 0.65rem !important;
+}
+
+/* ── Responsive ──────────────────────────────────── */
+@media (max-width: 600px) {
+  :root {
+    --sidebar-w: 100vw;
+  }
+
+  body {
+    flex-direction: column;
+  }
+
+  #sidebar {
+    height: auto;
+    max-height: 50vh;
+    width: 100%;
+  }
+
+  #map {
+    height: 50vh;
+  }
+}

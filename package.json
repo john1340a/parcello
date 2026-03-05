@@ -1,0 +1,17 @@
+{
+  "name": "parcello",
+  "version": "1.0.0",
+  "description": "Web SIG pour visualiser ses parcelles en temps réel avec fond de carte satellite PlanetScope",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "maplibre-gl": "^5.19.0"
+  },
+  "devDependencies": {
+    "vite": "^7.3.1"
+  }
+}

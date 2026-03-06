@@ -327,7 +327,7 @@ body {
 #notification {
   position: fixed;
   top: 1.5rem;
-  left: 50%;
+  left: calc(50% + (var(--sidebar-w) / 2));
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text);
@@ -407,6 +407,10 @@ body {
   }
   body.sidebar-open #sidebar { transform: translateX(0); }
   body.sidebar-open .sidebar-overlay { opacity: 1; pointer-events: all; }
+
+  #notification {
+    left: 50%;
+  }
 }
 
 /* ── MapLibre Overrides ─────────────────────────── */

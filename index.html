@@ -41,6 +41,22 @@
         <select id="planetImageSelect" class="select-full" disabled>
           <option value="__osm__">Jawg Street (par défaut)</option>
         </select>
+        
+        <div id="planetOpacityContainer" style="display: none; margin-top: 1rem;">
+          <label class="panel-label" style="font-size: 0.65rem; margin-bottom: 0.5rem">
+            OPACITÉ SATELLITE (PLANET)
+          </label>
+          <input
+            type="range"
+            id="planetOpacity"
+            min="0"
+            max="1"
+            step="0.05"
+            value="1"
+            class="range-full"
+          />
+        </div>
+
         <p id="planetSearchHint" class="hint" style="margin-top: 0.5rem">
           Glissez un GeoJSON pour rechercher des images satellites récentes.
         </p>

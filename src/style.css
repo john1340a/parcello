@@ -326,13 +326,12 @@ body {
 /* ── Notifications ───────────────────────────────── */
 #notification {
   position: fixed;
-  top: 1.5rem;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 1.5rem;
+  right: 1.5rem;
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 0.75rem 1.25rem;
+  padding: 1rem 1.25rem;
   border-radius: var(--radius);
   font-size: 0.875rem;
   font-weight: 500;
@@ -342,7 +341,33 @@ body {
   gap: 0.75rem;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
   pointer-events: none;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+#notification.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+#notification.hide {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+#notification .icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+#notification[data-type="info"] .icon-wrapper { color: #3b82f6; } /* Blue */
+#notification[data-type="warn"] .icon-wrapper { color: #f59e0b; } /* Amber */
+#notification[data-type="error"] .icon-wrapper { color: #ef4444; } /* Red */
 
 /* ── Mobile ──────────────────────────────────────── */
 .btn-toggle {

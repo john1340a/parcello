@@ -4,6 +4,8 @@ const PLANET_TILE_URL_TEMPLATE =
   "https://tiles0.planet.com/data/v1/PSScene/{item_id}/{z}/{x}/{y}.png?api_key={apiKey}";
 
 const JAWG_STYLE_URL = `https://api.jawg.io/styles/jawg-streets.json?access-token=${import.meta.env.VITE_JAWG_API_KEY}`;
+const ESRI_SATELLITE_URL =
+  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 
 const SOURCE_ID = "parcelles";
 const LAYER_FILL = "parcelles-fill";
@@ -13,6 +15,7 @@ const LAYER_LABEL = "parcelles-label";
 /* ── State ───────────────────────────────────────── */
 let map;
 let geojsonData = null;
+let currentPlanetOpacity = 1;
 
 /* ── Map Initialisation ──────────────────────────── */
 function initMap() {
@@ -55,6 +58,13 @@ function buildPlanetStyle(itemId, apiKey) {
   return {
     version: 8,
     sources: {
+      esri: {
+        type: "raster",
+        tiles: [ESRI_SATELLITE_URL],
+        tileSize: 256,
+        attribution: "© Esri, Maxar, Earthstar Geographics, etc.",
+        maxzoom: 19,
+      },
       planet: {
         type: "raster",
         tiles: [tilesUrl],
@@ -63,7 +73,17 @@ function buildPlanetStyle(itemId, apiKey) {
         maxzoom: 18,
       },
     },
-    layers: [{ id: "planet", type: "raster", source: "planet" }],
+    layers: [
+      { id: "esri-basemap", type: "raster", source: "esri" },
+      {
+        id: "planet-overlay",
+        type: "raster",
+        source: "planet",
+        paint: {
+          "raster-opacity": currentPlanetOpacity,
+        },
+      },
+    ],
   };
 }
 
@@ -90,11 +110,15 @@ function applyBasemap(style) {
 function updateBasemap() {
   const itemId = document.getElementById("planetImageSelect").value;
   const apiKey = import.meta.env.VITE_PLANET_API_KEY;
+  const opacityContainer = document.getElementById("planetOpacityContainer");
 
   if (itemId === "__osm__") {
+    if (opacityContainer) opacityContainer.style.display = "none";
     applyBasemap(JAWG_STYLE_URL);
     return;
   }
+
+  if (opacityContainer) opacityContainer.style.display = "block";
 
   if (!apiKey) {
     showNotification(
@@ -488,30 +512,31 @@ function showNotification(message, type = "info") {
 
   const el = document.createElement("div");
   el.id = "notification";
+  el.setAttribute("data-type", type);
   el.innerHTML = `
-    <span class="material-symbols-outlined" style="font-size: 1.2rem; vertical-align: middle; margin-right: 0.5rem">${icons[type] || "info"}</span>
-    <span style="vertical-align: middle">${message}</span>
+    <div class="icon-wrapper">
+      <span class="material-symbols-outlined" style="font-size: 1.25rem;">${icons[type] || "info"}</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+      <span style="font-weight: 600;">${type === "error" ? "Erreur" : type === "warn" ? "Attention" : "Information"}</span>
+      <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 400;">${message}</span>
+    </div>
   `;
-  el.style.cssText = `
-    position: fixed;
-    top: 1.5rem;
-    left: 50%;
-    transform: translateX(-50%);
-    background: ${type === "error" ? "#e05252" : type === "warn" ? "#d97706" : "#4f7cff"};
-    color: #fff;
-    padding: 0.75rem 1.5rem;
-    border-radius: 12px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    z-index: 9999;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    display: flex;
-    align-items: center;
-    max-width: 90vw;
-    pointer-events: none;
-  `;
+
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 4000);
+
+  // Trigger animation after next repaint
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      el.classList.add("show");
+    });
+  });
+
+  setTimeout(() => {
+    el.classList.remove("show");
+    el.classList.add("hide");
+    setTimeout(() => el.remove(), 300); // Wait for transition to finish
+  }, 4000);
 }
 
 /* ── Utilities ───────────────────────────────────── */
@@ -583,6 +608,21 @@ function wireEvents() {
     .getElementById("clearLayer")
     .addEventListener("click", removeParcelLayer);
   document.getElementById("zoomToLayer").addEventListener("click", zoomToLayer);
+
+  /* Planet Opacity Control */
+  const planetOpacityEl = document.getElementById("planetOpacity");
+  if (planetOpacityEl) {
+    planetOpacityEl.addEventListener("input", (e) => {
+      currentPlanetOpacity = parseFloat(e.target.value);
+      if (map && map.getLayer("planet-overlay")) {
+        map.setPaintProperty(
+          "planet-overlay",
+          "raster-opacity",
+          currentPlanetOpacity,
+        );
+      }
+    });
+  }
 
   /* Responsive Sidebar Toggle */
   const menuToggle = document.getElementById("menuToggle");

@@ -326,8 +326,8 @@ body {
 /* ── Notifications ───────────────────────────────── */
 #notification {
   position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
+  top: 1.5rem;
+  left: 50%;
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text);
@@ -342,18 +342,18 @@ body {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
   pointer-events: none;
   opacity: 0;
-  transform: translateY(20px);
+  transform: translate(-50%, -20px);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 #notification.show {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate(-50%, 0);
 }
 
 #notification.hide {
   opacity: 0;
-  transform: translateY(20px);
+  transform: translate(-50%, -20px);
 }
 
 #notification .icon-wrapper {

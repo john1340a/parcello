@@ -50,63 +50,6 @@ function initMap() {
 }
 
 /* ── Planet Basemap & API ────────────────────────── */
-function buildPlanetStyle(itemId, apiKey) {
-  const tilesUrl = PLANET_TILE_URL_TEMPLATE.replace(
-    "{item_id}",
-    itemId,
-  ).replace("{apiKey}", apiKey);
-  return {
-    version: 8,
-    sources: {
-      esri: {
-        type: "raster",
-        tiles: [ESRI_SATELLITE_URL],
-        tileSize: 256,
-        attribution: "© Esri, Maxar, Earthstar Geographics, etc.",
-        maxzoom: 19,
-      },
-      planet: {
-        type: "raster",
-        tiles: [tilesUrl],
-        tileSize: 256,
-        attribution: "© Planet Labs PBC",
-        maxzoom: 18,
-      },
-    },
-    layers: [
-      { id: "esri-basemap", type: "raster", source: "esri" },
-      {
-        id: "planet-overlay",
-        type: "raster",
-        source: "planet",
-        paint: {
-          "raster-opacity": currentPlanetOpacity,
-        },
-      },
-    ],
-  };
-}
-
-/**
- * Re-apply the current style while preserving existing parcel layers.
- */
-function applyBasemap(style) {
-  const hadParcels = geojsonData !== null;
-
-  // Preserve the viewport
-  const center = map.getCenter();
-  const zoom = map.getZoom();
-  const bearing = map.getBearing();
-  const pitch = map.getPitch();
-
-  map.setStyle(style);
-
-  map.once("styledata", () => {
-    map.jumpTo({ center, zoom, bearing, pitch });
-    if (hadParcels) addParcelsToMap();
-  });
-}
-
 function updateBasemap() {
   const itemId = document.getElementById("planetImageSelect").value;
   const apiKey = import.meta.env.VITE_PLANET_API_KEY;
@@ -114,7 +57,10 @@ function updateBasemap() {
 
   if (itemId === "__osm__") {
     if (opacityContainer) opacityContainer.style.display = "none";
-    applyBasemap(JAWG_STYLE_URL);
+    if (map.getLayer("planet-overlay")) map.removeLayer("planet-overlay");
+    if (map.getSource("planet")) map.removeSource("planet");
+    if (map.getLayer("esri-basemap")) map.removeLayer("esri-basemap");
+    if (map.getSource("esri")) map.removeSource("esri");
     return;
   }
 
@@ -126,11 +72,56 @@ function updateBasemap() {
       "warn",
     );
     document.getElementById("planetImageSelect").value = "__osm__";
-    applyBasemap(JAWG_STYLE_URL);
+    updateBasemap();
     return;
   }
 
-  applyBasemap(buildPlanetStyle(itemId, apiKey));
+  const tilesUrl = PLANET_TILE_URL_TEMPLATE.replace(
+    "{item_id}",
+    itemId,
+  ).replace("{apiKey}", apiKey);
+
+  if (!map.getSource("esri")) {
+    map.addSource("esri", {
+      type: "raster",
+      tiles: [ESRI_SATELLITE_URL],
+      tileSize: 256,
+      attribution: "© Esri, Maxar, Earthstar Geographics, etc.",
+      maxzoom: 19,
+    });
+  }
+
+  const beforeId = map.getLayer(LAYER_FILL) ? LAYER_FILL : undefined;
+
+  if (!map.getLayer("esri-basemap")) {
+    map.addLayer(
+      { id: "esri-basemap", type: "raster", source: "esri" },
+      beforeId,
+    );
+  }
+
+  if (map.getLayer("planet-overlay")) map.removeLayer("planet-overlay");
+  if (map.getSource("planet")) map.removeSource("planet");
+
+  map.addSource("planet", {
+    type: "raster",
+    tiles: [tilesUrl],
+    tileSize: 256,
+    attribution: "© Planet Labs PBC",
+    maxzoom: 18,
+  });
+
+  map.addLayer(
+    {
+      id: "planet-overlay",
+      type: "raster",
+      source: "planet",
+      paint: {
+        "raster-opacity": currentPlanetOpacity,
+      },
+    },
+    beforeId,
+  );
 }
 
 /* ── Utilities ───────────────────────────────────── */
